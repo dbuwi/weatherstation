@@ -1,426 +1,380 @@
 <template>
       <v-container fluid class="bg-surface">
         <v-row class="mx-auto" style="max-width: 1200px; padding: 1rem;">
-            <v-col>
-                <v-sheet class="pa-2" height="250">
-                    <p>Enter date range for Analysis</p>
-                    <v-divider></v-divider>
-                    <v-text-field v-model= "start" label="Start date" type="date" density="compact" variant="solo-inverted" flat
-                        style="max-width: 300px; margin-right: 5px;">
-                    </v-text-field>
-                    <v-text-field v-model = "end" label="End date" type="date" density="compact" variant="solo-inverted" flat
-                        style="max-width: 300px;">
-                    </v-text-field>
-                    <v-spacer></v-spacer>
-                    <v-btn @click="updateCards();updateLineCharts();updateHistogramCharts()" class="text-caption" color="primary" variant="tonal">Analyze</v-btn>
-                </v-sheet>
-            </v-col>
-            <v-col cols="3" class="d-flex justify-center">
-                <v-card title="Temperature" width="250" variant="outlined" color="primary" density="compact" rounded="lg">
-                    <v-card-item class="mb-n5">
-                        <v-chip-group class="d-flex flex-row justify-center" color="primaryContainer" variant="flat">
-                            <v-tooltip text="Min" location="start">
-                                <template v-slot:activator="{ on, attrs }">
-                                    <v-chip v-bind="attrs" v-on="on">{{ temperature.min }}</v-chip>
-                                </template>
-                            </v-tooltip>
-                            <v-tooltip text="Range" location="top">
-                                <template v-slot:activator="{ on, attrs }">
-                                    <v-chip v-bind="attrs" v-on="on">{{ temperature.range }}</v-chip>
-                                </template>
-                            </v-tooltip>
-                            <v-tooltip text="Max" location="end">
-                                <template v-slot:activator="{ on, attrs }">
-                                    <v-chip v-bind="attrs" v-on="on">{{ temperature.max }}</v-chip>
-                                </template>
-                            </v-tooltip>
-                        </v-chip-group>
-                    </v-card-item>
-                    <v-card-item align="center">
-                        <span class="text-h1 text-primary font-weight-bold">{{ temperature.avg }}</span>
-                    </v-card-item>
-                </v-card>
-            </v-col>
-            <v-col cols="3" class="d-flex justify-center">
-                <v-card title="Humidity" width="250" variant="outlined" color="primary" density="compact" rounded="lg">
-                    <v-card-item class="mb-n5">
-                        <v-chip-group class="d-flex flex-row justify-center" color="primaryContainer" variant="flat">
-                            <v-tooltip text="Min" location="start">
-                                <template v-slot:activator="{ on, attrs }">
-                                    <v-chip v-bind="attrs" v-on="on">{{ humidity.min }}</v-chip>
-                                </template>
-                            </v-tooltip>
-                            <v-tooltip text="Range" location="top">
-                                <template v-slot:activator="{ on, attrs }">
-                                    <v-chip v-bind="attrs" v-on="on">{{ humidity.range }}</v-chip>
-                                </template>
-                            </v-tooltip>
-                            <v-tooltip text="Max" location="end">
-                                <template v-slot:activator="{ on, attrs }">
-                                    <v-chip v-bind="attrs" v-on="on">{{ humidity.max }}</v-chip>
-                                </template>
-                            </v-tooltip>
-                        </v-chip-group>
-                    </v-card-item>
-                    <v-card-item align="center">
-                        <span class="text-h1 text-primary font-weight-bold">{{ humidity.avg }}</span>
-                    </v-card-item>
+            <v-col cols="12">
+                <v-card class="pa-4">
+                    <v-card-title>Date Range Selection</v-card-title>
+                    <v-card-text>
+                        <v-row>
+                            <v-col cols="12" md="5">
+                                <v-text-field
+                                    v-model="start"
+                                    label="Start date"
+                                    type="date"
+                                    density="compact"
+                                    variant="outlined"
+                                    :rules="[v => !!v || 'Start date is required']"
+                                    :max="end || maxDate"
+                                ></v-text-field>
+                            </v-col>
+                            <v-col cols="12" md="5">
+                                <v-text-field
+                                    v-model="end"
+                                    label="End date"
+                                    type="date"
+                                    density="compact"
+                                    variant="outlined"
+                                    :rules="[v => !!v || 'End date is required']"
+                                    :min="start"
+                                    :max="maxDate"
+                                ></v-text-field>
+                            </v-col>
+                            <v-col cols="12" md="2" class="d-flex align-center">
+                                <v-btn
+                                    @click="updateAnalysis"
+                                    color="primary"
+                                    :loading="loading"
+                                    :disabled="!start || !end"
+                                >
+                                    Analyze
+                                </v-btn>
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
                 </v-card>
             </v-col>
         </v-row>
-        <v-row class="mx-auto" style="max-width: 1200px;">
-            <v-col cols="12">
-                <figure class="highcharts-figure">
-                    <div id="container"></div>
-                </figure>
-            </v-col>
-            <v-col cols="12">
-                <figure class="highcharts-figure">
-                    <div id="container0"></div>
-                </figure>
-            </v-col>
-        </v-row>
-        <v-row class="mx-auto" style="max-width: 1200px;">
-            <v-col cols="12" border>
-                <figure class="highcharts-figure">
-                    <div id="container1"></div>
-                </figure>
-            </v-col>
-            <v-col cols="12">
-                <figure class="highcharts-figure">
-                    <div id="container2"></div>
-                </figure>
-            </v-col>
-            <v-col cols="12">
-                <figure class="highcharts-figure">
-                    <div id="container3"></div>
-                </figure>
-            </v-col>
-            <v-col cols="12" >
-                <figure class="highcharts-figure">
-                   <div id="container4"></div>
-                </figure>
-            </v-col>
 
+        <!-- Analysis Section -->
+        <v-row class="mx-auto" style="max-width: 1200px;">
+            <v-col cols="12">
+                <v-card class="pa-4">
+                    <v-card-title>Environmental Analysis</v-card-title>
+                    <v-card-text>
+                        <v-row>
+                            <!-- Weather -->
+                            <v-col cols="12" md="6">
+                                <v-card variant="outlined" class="pa-3">
+                                    <v-card-title class="text-h6">Weather </v-card-title>
+                                    <v-card-text>
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <span>Comfort Level:</span>
+                                            <span :class="comfortLevelClass">{{ comfortLevel }}</span>
+                                        </div>
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <span>Feels Like:</span>
+                                            <span>{{ feelsLike }}</span>
+                                        </div>
+                                        <div class="d-flex justify-space-between">
+                                            <span>Comfort Score:</span>
+                                            <v-progress-circular
+                                                :model-value="comfortScore"
+                                                :color="comfortScoreColor"
+                                                :size="30"
+                                            >
+                                                {{ comfortScore }}
+                                            </v-progress-circular>
+                                        </div>
+                                    </v-card-text>
+                                </v-card>
+                            </v-col>
+                            <!-- Environmental Alerts -->
+                            <v-col cols="12" md="6">
+                                <v-card variant="outlined" class="pa-3">
+                                    <v-card-title class="text-h6">Environmental Alerts</v-card-title>
+                                    <v-card-text>
+                                        <div v-for="(alert, index) in alerts" :key="index" class="d-flex align-center mb-2">
+                                            <v-icon :color="alert.color" class="mr-2">{{ alert.icon }}</v-icon>
+                                            <span>{{ alert.message }}</span>
+                                        </div>
+                                    </v-card-text>
+                                </v-card>
+                            </v-col>
+                            <!-- Trend Analysis -->
+                            <v-col cols="12" md="6">
+                                <v-card variant="outlined" class="pa-3">
+                                    <v-card-title class="text-h6">Trend Analysis</v-card-title>
+                                    <v-card-text>
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <span>Temperature Trend:</span>
+                                            <span :class="temperatureTrendClass">{{ temperatureTrend }}</span>
+                                        </div>
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <span>Humidity Trend:</span>
+                                            <span :class="humidityTrendClass">{{ humidityTrend }}</span>
+                                        </div>
+                                        <div class="d-flex justify-space-between">
+                                            <span>Pressure Trend:</span>
+                                            <span :class="pressureTrendClass">{{ pressureTrend }}</span>
+                                        </div>
+                                    </v-card-text>
+                                </v-card>
+                            </v-col>
+                            <!-- Data Insights -->
+                            <v-col cols="12" md="6">
+                                <v-card variant="outlined" class="pa-3">
+                                    <v-card-title class="text-h6">Data Insights</v-card-title>
+                                    <v-card-text>
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <span>Temperature Stability:</span>
+                                            <span>{{ temperatureStability }}</span>
+                                        </div>
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <span>Humidity Pattern:</span>
+                                            <span>{{ humidityPattern }}</span>
+                                        </div>
+                                        <div class="d-flex justify-space-between">
+                                            <span>Environmental State:</span>
+                                            <span>{{ environmentalState }}</span>
+                                        </div>
+                                    </v-card-text>
+                                </v-card>
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                </v-card>
+            </v-col>
         </v-row>
     </v-container>
 </template>
 
 <script setup>
-/** JAVASCRIPT HERE */
-
-// IMPORTS
-import { ref,reactive,watch ,onMounted,onBeforeUnmount,computed } from "vue";  
-import { useRoute ,useRouter } from "vue-router";
-import { useMqttStore } from '@/store/mqttStore'; // Import Mqtt Store
+import { ref, computed, onMounted } from "vue";
+import { useMqttStore } from '@/store/mqttStore';
 import { storeToRefs } from "pinia";
-// IMPORTS
 import { useAppStore } from "@/store/appStore";
-// Highcharts, Load the exporting module and Initialize exporting module.
-import Highcharts from 'highcharts';
-import more from 'highcharts/highcharts-more';
-import Exporting from 'highcharts/modules/exporting';
-Exporting(Highcharts);
-more(Highcharts);
 
-// VARIABLES
+// Store setup
 const Mqtt = useMqttStore();
-const { payload, payloadTopic } = storeToRefs(Mqtt);
+const { payload } = storeToRefs(Mqtt);
 const AppStore = useAppStore();
-// VARIABLES
-const router      = useRouter();
-const route       = useRoute();  
-const temperature = reactive({ min: 0, max: 0, avg: 0, range: 0 });
-const humidity    = reactive({ min: 0, max: 0, avg: 0, range: 0 });
+
+// Date handling
 const start = ref("");
 const end = ref("");
-const tempHiChart = ref(null); // Chart object
-const humidChart = ref(null);
-const fdChart = ref(null);
-const scatterPlot = ref(null);
-
-const CreateCharts = async () => {
-// TEMPERATURE CHART
-tempHiChart.value = Highcharts.chart('container', {
-chart: { zoomType: 'x' },
-title: { text: 'Air Temperature and Heat Index Analysis', align: 'left' },
-subtitle: { text: 'The heat index, also known as the "apparent temperature," is a measure that combines airtemperature and relative humidity to assess how hot it feels to the human body. The relationship between heat index and air temperature is influenced by humidity levels. As humidity increases, the heatindex also rises, making the perceived temperature higher than the actual air temperature.', align: 'left'},
-yAxis: {
-title: { text: ' Air Temperature & Heat Index' , style:{color:'#000000'}},
-labels: { format: '{value} °C' }
-},
-xAxis: {
-type: 'datetime',
-title: { text: 'Time', style:{color:'#000000'} },
-},
-tooltip: { shared:true, },
-series: [
-{
-name: 'Temperature',
-type: 'spline',
-data: [],
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[0]
-},
-{
-name: 'Heat Index',
-type: 'spline',
-data: [],
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[1]
-} ]
+const loading = ref(false);
+const maxDate = computed(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
 });
 
-// HUMIDITY CHART
-humidChart.value = Highcharts.chart('container0', {
-chart: { zoomType: 'x' },
-title: { text: 'Humidty  Analysis', align: 'left' },
-subtitle: { text:'By Job Category. Source: IREC.',align: 'left'},
-yAxis: {
-title: { text: ' Air Temperature & Heat Index' , style:{color:'#000000'}},
-labels: { format: '{value} °C' }
-},
-xAxis: {
-type: 'datetime',
-title: { text: 'Time', style:{color:'#000000'} },
-},
-tooltip: { shared:true, },
-series: [
-{
-name: 'Humidty',
-type: 'spline',
-data: [],
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[0]
-},
-{
-name: 'Heat Index',
-type: 'spline',
-data: [],
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[1]
-} ]
+// Connect to MQTT on component mount
+onMounted(() => {
+    Mqtt.connect();
+    setTimeout(() => {
+        Mqtt.subscribe("620162321");
+        Mqtt.subscribe("620162321_sub", "/elet2415");
+    }, 3000);
 });
 
-// Frequency Disctribution CHART
-fdChart.value = Highcharts.chart('container1', {
-chart: { zoomType: 'x' },
-title: { text: 'Frequency Distribution Analysis', align: 'left' },
-yAxis: {
-title: { text: ' Air Temperature & Heat Index' , style:{color:'#000000'}},
-labels: { format: '{value} °C' }
-},
-xAxis: {
-type: 'datetime',
-title: { text: 'Time', style:{color:'#000000'} },
-},
-tooltip: { shared:true, },
-series: [
-{
-name: 'Temperature',
-type: 'spline',
-data: [],
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[0]
-},
-{
-name: 'Heat Index',
-type: 'spline',
-data: [],
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[1]
-} ]
-});
-
-// SCATTER PLOT
-scatterPlot.value = Highcharts.chart('container2', {
-chart: { type: 'scatter', zoomType: 'x' },
-title: { text: 'Temperature & Heat Index Correlation Analysis', align: 'left' },
-subtitle: {text: 'Visualize the relationship between Temperature and Heat Index as well as revealing patterns or trends in the data'},
-yAxis: {
-title: { text: ' Heat Index' , style:{color:'#000000'}},
-labels: { format: '{value} °C' }
-},
-xAxis: {
-type: 'datetime',
-title: { text: 'Temperature', style:{color:'#000000'} }, labels: { format: '{value} °C ' }
-},
-tooltip: { shared:true, pointFormat: 'Temperature: {point.x} °C <br/> Heat Index: {point.y} °C'},
-series: [
-{
-name: 'Analysis',
-type: 'scatter',
-data: scatterPlot,
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[0]
-}
- ]
-}); 
-
-// SCATTER PLOT for Humidity and Heat Index
-scatterPlot.value = Highcharts.chart('container3', {
-chart: { type: 'scatter', zoomType: 'x' },
-title: { text: 'Humidity & Heat Index Correlation Analysis', align: 'left' },
-subtitle: {text: 'Visualize the relationship between Humidity and Heat Index as well as revealing patterns or trends in the data'},
-yAxis: {
-title: { text: ' Heat Index' , style:{color:'#000000'}},
-labels: { format: '{value} °C' }
-},
-xAxis: {
-type: 'datetime',
-title: { text: 'Humidity', style:{color:'#000000'} }, labels: { format: '{value} %' }
-},
-tooltip: { shared:true, pointFormat: 'Humidity: {point.x} % <br/> Heat Index: {point.y} °C'
- },
-series: [
-{
-name: 'Analysis',
-type: 'scatter',
-data: scatterPlot,
-turboThreshold: 0,
-color: Highcharts.getOptions().colors[0]
-}
- ]
-});
- 
-
-
-}; 
-
-
-// FUNCTIONS
-onMounted(()=>{
-// THIS FUNCTION IS CALLED AFTER THIS COMPONENT HAS BEEN MOUNTED
-CreateCharts();
-Mqtt.connect(); // Connect to Broker located on the backend
-setTimeout( ()=>{
-// Subscribe to each topic
-Mqtt.subscribe("620162321");
-Mqtt.subscribe("620162321_sub","/elet2415");
-},3000);
-});
-
-onBeforeUnmount(()=>{
-// THIS FUNCTION IS CALLED RIGHT BEFORE THIS COMPONENT IS UNMOUNTED
-// unsubscribe from all topics
- Mqtt.unsubcribeAll();
-});
- 
-const updateLineCharts = async ()=>{
-if(!!start.value && !!end.value){
-// Convert output from Textfield components to 10 digit timestamps
-let startDate = new Date(start.value).getTime() / 1000;
-let endDate = new Date(end.value).getTime() / 1000;
-// Fetch data from backend
-const data = await AppStore.getAllInRange(startDate,endDate);
-// Create arrays for each plot
-let temperature = [];
-let heatindex = [];
-let humidity = [];
-let frequency = [];
-let scatter = [];
-
-// Iterate through data variable and transform object to format recognized by highcharts
-data.forEach(row => {
-temperature.push({"x": row.timestamp * 1000, "y": parseFloat(row.temperature.toFixed(2)) });
-heatindex.push({ "x": row.timestamp * 1000,"y": parseFloat(row.heatindex.toFixed(2)) });
-humidity.push({ "x": row.timestamp * 1000,"y": parseFloat(row.humidity.toFixed(2)) });
-frequency.push({ "x": row.timestamp * 1000,"y": parseFloat(row.frequency.toFixed(2)) });
-scatter.push({ "x": row.timestamp * 1000,"y": parseFloat(row.scatter.toFixed(2)) });
-});
-// Add data to Temperature and Heat Index chart
-tempHiChart.value.series[0].setData(temperature);
-tempHiChart.value.series[1].setData(heatindex);
-humidChart.value.series[0].setData(humidity);
-fdChart.value.series[0].setData(frequency);
-scatterPlot.value.series[0].setData(scatter);
-}
+const updateAnalysis = async () => {
+    if (!start.value || !end.value) return;
+    
+    loading.value = true;
+    try {
+        const startDate = new Date(start.value).getTime() / 1000;
+        const endDate = new Date(end.value).getTime() / 1000;
+        
+        // Fetch and process data from backend
+        await AppStore.getAllInRange(startDate, endDate);
+        
+    } catch (error) {
+        console.error('Error fetching analysis data:', error);
+    } finally {
+        loading.value = false;
+    }
 };
- 
-const updateCards = async () => {
-console.log("called1");
-// Retrieve Min, Max, Avg, Spread/Range
-if(!!start.value && !!end.value){
-// 1. Convert start and end dates collected fron TextFields to 10 digit timestamps
-let startDate = new Date(start.value).getTime() / 1000;
-let endDate = new Date(end.value).getTime() / 1000;
-// 2. Fetch data from backend by calling the API functions
-const temp = await AppStore.getTemperatureMMAR(startDate,endDate);
-const humid = await AppStore.getHumidityMMAR(startDate,endDate);
-console.log(humid);
-console.log(temp);
-temperature.max = temp[0].max.toFixed(1);
-//3. complete for min, avg and range
-temperature.min = temp[0].min.toFixed(1);
-temperature.avg = temp[0].avg.toFixed(1);
-temperature.range = (temp[0].max - temp[0].min).toFixed(1);
-//4. complete max, min, avg and range for the humidity variable
-humidity.max = humid[0].max.toFixed(1);
-humidity.min = humid[0].min.toFixed(1);
-humidity.avg = humid[0].avg.toFixed(1);
-humidity.range = (humid[0].max - humid[0].min).toFixed(1);
-} 
-} 
 
-const updateHistogramCharts = async () =>{
-// Retrieve Min, Max, Avg, Spread/Range for Column graph
-if(!!start.value && !!end.value){
-// 1. Convert start and end dates collected fron TextFields to 10 digit timestamps
- // Subsequently, create startDate and endDate variables and then save the respective timestamps in these variables
- let startDate = new Date(start.value).getTime() / 1000;
- let endDate = new Date(end.value).getTime() / 1000;
+// Analysis computed properties
+const comfortLevel = computed(() => {
+    if (!payload.value) return 'N/A';
+    const temp = parseFloat(payload.value.temperatureDHT);
+    const hum = parseFloat(payload.value.humidity);
+    const hi = parseFloat(payload.value.heatIndex);
 
- // 2. Fetch data(temp, humid and hi) from backend by calling the getFreqDistro API functions for each
-const temp = await AppStore.getFreqDistro("temperature",startDate,endDate);
-const humid = await AppStore.getFreqDistro("humidity",startDate,endDate);
-const hi = await AppStore.getFreqDistro("heatindex",startDate,endDate);
-
-// 3. create an empty array for each variable (temperature, humidity and heatindex)
-// see example below
-let temperature = [];
-let humidity = [];
-let heatIndex = [];
-
-// 4. Iterate through the temp variable, which contains temperature data fetched from the backend
-// transform the data to {"x": x_value,"y": y_value} format and then push it to the temperature array created previously
-// see example below
-temp.forEach(row => {
-    temperature.push({"x": row["_id"],"y": row["count"]})
+    if (temp < 15) return 'Cold';
+    if (temp > 30) return 'Hot';
+    if (hum > 80) return 'Humid';
+    if (hi > temp + 5) return 'Uncomfortable';
+    return 'Comfortable';
 });
 
-// 5. Iterate through the humid variable, which contains humidity data fetched from the backend
-// transform the data to {"x": x_value,"y": y_value} format and then push it to the humidity array created previously
-humid.forEach(row => {
-      humidity.push({ "x": row["_id"], "y": row["count"] });
-    });
+const comfortLevelClass = computed(() => {
+    switch (comfortLevel.value) {
+        case 'Cold': return 'text-primary';
+        case 'Hot': return 'text-error';
+        case 'Humid': return 'text-warning';
+        case 'Uncomfortable': return 'text-error';
+        default: return 'text-success';
+    }
+});
 
+const feelsLike = computed(() => {
+    if (!payload.value) return 'N/A';
+    const temp = parseFloat(payload.value.temperatureDHT);
+    const hi = parseFloat(payload.value.heatIndex);
+    return `${hi.toFixed(1)}°C (${temp.toFixed(1)}°C actual)`;
+});
 
-// 6. Iterate through the humid variable, which contains heat index data fetched from the backend
-// transform the data to {"x": x_value,"y": y_value} format and then push it to the heatindex array created previously
-hi.forEach(row => {
-      heatindex.push({ "x": row["_id"], "y": row["count"] });
-    });
-// 7. update series[0] for the histogram/Column chart with temperature data
-// see example below
-fdChart.value.series[0].setData(temperature);
+const comfortScore = computed(() => {
+    if (!payload.value) return 0;
+    const temp = parseFloat(payload.value.temperatureDHT);
+    const hum = parseFloat(payload.value.humidity);
+    const hi = parseFloat(payload.value.heatIndex);
+    
+    let score = 100;
+    
+    // Temperature criteria
+    if (temp < 15) score -= 20;
+    if (temp > 30) score -= 30;
+    
+    // Humidity criteria
+    if (hum > 80) score -= 25;
+    if (hum < 30) score -= 15;
+    
+    // Heat index criteria
+    if (hi > temp + 5) score -= 20;
+    
+    return Math.max(0, Math.min(100, score));
+});
 
-// 8. update series[1] for the histogram/Column chart with humidity data
-fdChart.value.series[1].setData(humidity);
-// 9. update series[2] for the histogram/Column chart with heat index data
-fdChart.value.series[2].setData(heatIndex);
-}
-}; 
+const comfortScoreColor = computed(() => {
+    if (comfortScore.value >= 80) return 'success';
+    if (comfortScore.value >= 60) return 'warning';
+    return 'error';
+});
+
+const alerts = computed(() => {
+    if (!payload.value) return [];
+    const alerts = [];
+    const temp = parseFloat(payload.value.temperatureDHT);
+    const hum = parseFloat(payload.value.humidity);
+    const soil = parseFloat(payload.value.soilMoisture);
+    
+    if (temp > 30) {
+        alerts.push({
+            icon: 'mdi-thermometer-high',
+            color: 'error',
+            message: 'High temperature alert'
+        });
+    }
+    
+    if (hum > 80) {
+        alerts.push({
+            icon: 'mdi-water-percent',
+            color: 'warning',
+            message: 'High humidity alert'
+        });
+    }
+    
+    if (soil < 30) {
+        alerts.push({
+            icon: 'mdi-water',
+            color: 'error',
+            message: 'Low soil moisture alert'
+        });
+    }
+    
+    return alerts;
+});
+
+const temperatureTrend = computed(() => {
+    if (!payload.value) return 'N/A';
+    const temp = parseFloat(payload.value.temperatureDHT);
+    const hi = parseFloat(payload.value.heatIndex);
+    
+    if (hi > temp + 5) return 'Rising';
+    if (hi < temp - 2) return 'Falling';
+    return 'Stable';
+});
+
+const temperatureTrendClass = computed(() => {
+    switch (temperatureTrend.value) {
+        case 'Rising': return 'text-error';
+        case 'Falling': return 'text-primary';
+        default: return 'text-success';
+    }
+});
+
+const humidityTrend = computed(() => {
+    if (!payload.value) return 'N/A';
+    const hum = parseFloat(payload.value.humidity);
+    
+    if (hum > 80) return 'High';
+    if (hum < 30) return 'Low';
+    return 'Ideal';
+});
+
+const humidityTrendClass = computed(() => {
+    switch (humidityTrend.value) {
+        case 'High': return 'text-warning';
+        case 'Low': return 'text-error';
+        default: return 'text-success';
+    }
+});
+
+const pressureTrend = computed(() => {
+    if (!payload.value) return 'N/A';
+    const press = parseFloat(payload.value.pressure);
+    
+    if (press > 1020) return 'High';
+    if (press < 980) return 'Low';
+    return 'Normal';
+});
+
+const pressureTrendClass = computed(() => {
+    switch (pressureTrend.value) {
+        case 'High': return 'text-primary';
+        case 'Low': return 'text-warning';
+        default: return 'text-success';
+    }
+});
+
+const temperatureStability = computed(() => {
+    if (!payload.value) return 'N/A';
+    const temp = parseFloat(payload.value.temperatureDHT);
+    const hi = parseFloat(payload.value.heatIndex);
+    const diff = Math.abs(hi - temp);
+    
+    if (diff < 2) return 'Very Stable';
+    if (diff < 5) return 'Stable';
+    return 'Unstable';
+});
+
+const humidityPattern = computed(() => {
+    if (!payload.value) return 'N/A';
+    const hum = parseFloat(payload.value.humidity);
+    
+    if (hum > 80) return 'Very Humid';
+    if (hum > 60) return 'Moderately Humid';
+    if (hum < 30) return 'Very Dry';
+    return 'Balanced';
+});
+
+const environmentalState = computed(() => {
+    if (!payload.value) return 'N/A';
+    const temp = parseFloat(payload.value.temperatureDHT);
+    const hum = parseFloat(payload.value.humidity);
+    const soil = parseFloat(payload.value.soilMoisture);
+    
+    if (temp > 30 && hum > 80) return 'Tropical';
+    if (temp < 15 && hum < 30) return 'Dry';
+    if (soil < 30) return 'Drought Conditions';
+    return 'Normal';
+});
 </script>
 
-
 <style scoped>
-/** CSS STYLE HERE */
-.highcharts-figure {
-    width: 100%;
-    margin: 0 auto;
+.text-success {
+    color: #4CAF50 !important;
 }
-Figure {
-border: 2px solid black;
+.text-error {
+    color: #F44336 !important;
 }
-
+.text-warning {
+    color: #FFC107 !important;
+}
+.text-primary {
+    color: #2196F3 !important;
+}
 </style>

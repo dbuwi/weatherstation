@@ -46,7 +46,7 @@ export const useAppStore =  defineStore('app', ()=>{
         return []
         }
          
-        // New API functions added
+       
         const getTemperatureMMAR = async (start,end)=>{
             console.log("called2");
             // FETCH REQUEST WILL TIMEOUT AFTER 20 SECONDS
